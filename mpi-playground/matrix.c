@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
+
 
 
 #define MASTER 0              // Rank of Master's proc
@@ -31,52 +33,115 @@ int main(int argc, char** argv) {
       averagerows, extra, offset, // Arguments for determining rows send to each worker
       i, j, k, rc;                // misc
 
-  double **A, **B;                // Matrice
+  double **A, **B, **R;                // Matrice
+  MPI_Status status;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
   MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
-
-  if (argc != 2) {
-    printf("There must be 2 arguments!\n");
-    MPI_Abort(MPI_COMM_WORLD, rc);
-    exit(1);
-  }
-
-  if (numtasks < 2) {
-    printf("Need at least two MPI tasks\n");
-    MPI_Abort(MPI_COMM_WORLD, rc);
-    exit(1);
-  }
+    
+  numworkers = numtasks - 1;
+  
 
   /*
     * Master task
   */
   if (taskid == MASTER) {
-    const INT D = stoi(argv[1]);
+      if (argc != 2) {
+               printf("There must be 2 arguments!\n");
+                    MPI_Abort(MPI_COMM_WORLD, rc);
+                         return -1;
+                            
+      }
+
+      if (numtasks < 2) {
+               printf("Need at least two MPI tasks\n");
+                    MPI_Abort(MPI_COMM_WORLD, rc);
+                         return -1;
+                            
+      }
+
+    const int D = atoi(argv[1]);
     printf("MPI has started with %d tasks.\n", numtasks);
 
     // Initialize matrix
-    A = B = (double **) malloc(SIZE * sizeof(double *));
-    for (i = 0; i < SIZE; i++) {
-      A[i] = B[i] = (double *) malloc(SIZE * sizeof(double));
-      for (j = 0; j < SIZE; j++) {
+    A = (double **) malloc(D * sizeof(double *));
+    B = (double **) malloc(D * sizeof(double *));
+    R = (double **) malloc(D * sizeof(double *));
+    for (i = 0; i < D; i++) {
+      A[i] = (double *) malloc(D * sizeof(double));
+      B[i] = (double *) malloc(D * sizeof(double));
+      R[i] = (double *) malloc(D * sizeof(double));
+      for (j = 0; j < D; j++) {
         A[i][j] = i + j;
         B[i][j] = i * j;
       }
     }
 
     // Print for visualize
-    if (SIZE > 3) {
+    if (D > 3) {
       printSample(A, 3, 3);
       printSample(B, 3, 3);
     }
     else {
-      printSample(A, SIZE, SIZE);
-      printSample(B, SIZE, SIZE);
+      printSample(A, D, D);
+      printSample(B, D, D);
+    }
+    
+    // Measure start time
+    double start = MPI_Wtime();
+
+    // Send matrix data to the workers
+    averagerows = D / numworkers;
+    extra = D % numworkers;
+    offset = 0;
+    mtype = FROM_MASTER;
+
+    for (dest = 1; dest <= numworkers; dest++) {
+        rows = (dest <= extra) ? averagerows + 1 : averagerows;
+        // Sending info to workers
+        MPI_Send(&offset, 1, MPI_INT, dest, mtype, MPI_COMM_WORLD);
+        MPI_Send(&rows, 1, MPI_INT, dest, mtype, MPI_COMM_WORLD);
+        for (i = offset; i < offset + rows; i++) {
+            MPI_Send(&A[i][0], D, MPI_DOUBLE, dest, mtype, MPI_COMM_WORLD);
+        }
+        for (i = 0; i < D; i++) {
+            MPI_Send(&B[i][0], D, MPI_DOUBLE, dest, mtype, MPI_COMM_WORLD);
+        }
+        
+        offset += rows;
+
+        // Debug
+        printf("Successfully sending to worker %d.\n", dest);
     }
 
+    // Waiting the results from those workers.
+    printf("Waiting for workers..\n");
+    mtype = FROM_WORKER;
+    offset = 0;
+    for (source = 1; source <= numworkers; source++) {
+        MPI_Recv(&offset, 1, MPI_INT, source, mtype, MPI_COMM_WORLD, &status);
+        MPI_Recv(&rows, 1, MPI_INT, source, mtype, MPI_COMM_WORLD, &status);
+        for (i = offset; i < rows + offset; i++) {
+            MPI_Recv(&R[i][0], D, MPI_DOUBLE, source, mtype, MPI_COMM_WORLD, &status);
+        }
+        
+        // Debug
+        printf("Successfully receiving from workers %d.\n", source);
+    
+    }
+    
+    double finish = MPI_Wtime();
+    printf("Done in %.2f seconds.\n", finish - start);
 
-  } 
+    // Debug - print result
+    printSample(R, 11, 11);
+  }
+
+  if ()
+
+  MPI_Finalize();
+
+  return 0;
 }
 
