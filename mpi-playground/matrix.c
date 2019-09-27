@@ -138,7 +138,45 @@ int main(int argc, char** argv) {
     printSample(R, 11, 11);
   }
 
-  if ()
+  if (taskid > MASTER) {
+    // Receiving data from master
+    mtype = FROM_MASTER;
+    MPI_Recv(&offset, 1, MPI_INT, MASTER, mtype, MPI_COMM_WORLD, &status);
+    MPI_Recv(&rows, 1, MPI_INT, MASTER, mtype, MPI_COMM_WORLD, &status);
+
+    A = (double **) malloc(rows * sizeof(double *));
+    R = (double **) malloc(rows * sizeof(double *));
+    B = (double **) malloc(D * sizeof(double *));
+
+    for (i = 0; i < rows; i++) {
+      A[i] = (double *) malloc(D * sizeof(double));
+      R[i] = (double *) malloc(D * sizeof(double));
+      MPI_Recv(&A[i], D, MPI_DOUBLE, MASTER, mtype, MPI_COMM_WORLD, &status);
+    }
+
+    for (i = 0; i < D; i++) {
+      B[i] = (double *) malloc(D * sizeof(double));
+      MPI_Recv(&B[i], D, MPI_DOUBLE, MASTER, mtype, MPI_COMM_WORLD, &status);
+    }
+
+    // Do the job!!
+    for (i = 0; i < rows; i++) {
+      for (j = 0; j < D; j++) {
+        R[i][j] = 0.0;
+        for (k = 0; k < D; k++) {
+          R[i][j] += A[i][k] * B[k][j];
+        }
+      }
+    }
+
+    // Sending data to master
+    mtype = FROM_WORKER;
+    MPI_Send(&offset, 1, MPI_INT, MASTER, mtype, MPI_COMM_WORLD);
+    MPI_Send(&rows, 1, MPI_INT, MASTER, mtype, MPI_COMM_WORLD);
+    for (i = 0; i < rows; i++) {
+      MPI_Send(&R[i], D, MPI_DOUBLE, MASTER, mtype, MPI_COMM_WORLD);
+    }
+  }
 
   MPI_Finalize();
 
