@@ -109,6 +109,9 @@ int main(int argc, char** argv) {
         }
     }
 
+    fclose(matA);
+    fclose(matB);
+
     // Print for visualize
     if (DEBUG)
         if (rowA > 10 || rowB > 10) {
@@ -177,9 +180,17 @@ int main(int argc, char** argv) {
         }
         fprintf(result, "\n");
     }
-    
-    
-    
+    fclose(result);
+
+    // Deallocating
+    for (i = 0; i < rowA; i++) {
+      free(A[i]);
+      free(R[i]);
+    }
+    for (i = 0; i < rowB; i++) {
+      free(B[i]);
+    }
+    free(A); free(B); free(C);
   }  
   if (taskid > MASTER) {
     // Receiving data from master
