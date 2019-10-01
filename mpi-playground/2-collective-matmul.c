@@ -126,12 +126,12 @@ int main(int argc, char** argv) {
   MPI_Bcast(&rowB, 1, MPI_INT, ROOT,MPI_COMM_WORLD);
   MPI_Bcast(&colB, 1, MPI_INT, ROOT,MPI_COMM_WORLD);
   MPI_Bcast(&rows, 1, MPI_INT, ROOT,MPI_COMM_WORLD);
-  if (DEBUG == 1 && taskid == ROOT) printf("Broadcast metrics successfully!\n");
+  if (DEBUG && taskid == ROOT) printf("Broadcast metrics successfully!\n");
   
   // Broadcast matrix B to all processors
   if (B == NULL) B = (double *) malloc(rowB * colB * sizeof(double));
   MPI_Bcast(B, rowB * colB, MPI_DOUBLE, ROOT, MPI_COMM_WORLD);
-  if (DEBUG == 1 && taskid == ROOT) printf("Broadcast matrix B successfully!\n");
+  if (DEBUG && taskid == ROOT) printf("Broadcast matrix B successfully!\n");
 
   // Send matrix data to the workers
   A = (double *) malloc(rows * colA * sizeof(double));
@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
       position = i * colA + j;
       R[position] = 0.0;
       for (k = 0; k < colA; k++) {
-        if (taskid == 0) printf("[%d] = [%d]*[%d] \n", position, i*colA+k, k*colB+j); 
+        // if (taskid == 0) printf("[%d] = [%d]*[%d] \n", position, i*colA+k, k*colB+j); 
         R[position] += A[i * colA + k] * B[k * colB + j];
       }
     }
