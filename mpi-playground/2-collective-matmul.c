@@ -35,6 +35,7 @@ int main(int argc, char** argv) {
 
   double **A, **B, **R;                // Matrice
   MPI_Status status;
+  const int D = atoi(argv[1]);
 
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
@@ -61,7 +62,6 @@ int main(int argc, char** argv) {
                             
       }
 
-    const int D = atoi(argv[1]);
     printf("MPI has started with %d tasks.\n", numtasks);
 
     // Initialize matrix
@@ -73,8 +73,8 @@ int main(int argc, char** argv) {
       B[i] = (double *) malloc(D * sizeof(double));
       R[i] = (double *) malloc(D * sizeof(double));
       for (j = 0; j < D; j++) {
-        A[i][j] = i + j;
-        B[i][j] = i * j;
+        A[i][j] = (double) (i + j) / (2 * D);
+        B[i][j] = (double) (i * j) / (D * D);
       }
     }
 
@@ -151,13 +151,15 @@ int main(int argc, char** argv) {
     for (i = 0; i < rows; i++) {
       A[i] = (double *) malloc(D * sizeof(double));
       R[i] = (double *) malloc(D * sizeof(double));
-      MPI_Recv(&A[i], D, MPI_DOUBLE, MASTER, mtype, MPI_COMM_WORLD, &status);
+      MPI_Recv(&A[i][0], D, MPI_DOUBLE, MASTER, mtype, MPI_COMM_WORLD, &status);
     }
 
     for (i = 0; i < D; i++) {
       B[i] = (double *) malloc(D * sizeof(double));
-      MPI_Recv(&B[i], D, MPI_DOUBLE, MASTER, mtype, MPI_COMM_WORLD, &status);
+      MPI_Recv(&B[i][0], D, MPI_DOUBLE, MASTER, mtype, MPI_COMM_WORLD, &status);
     }
+
+    printf("Worker %d successfully received data!\n", taskid);
 
     // Do the job!!
     for (i = 0; i < rows; i++) {
@@ -174,7 +176,7 @@ int main(int argc, char** argv) {
     MPI_Send(&offset, 1, MPI_INT, MASTER, mtype, MPI_COMM_WORLD);
     MPI_Send(&rows, 1, MPI_INT, MASTER, mtype, MPI_COMM_WORLD);
     for (i = 0; i < rows; i++) {
-      MPI_Send(&R[i], D, MPI_DOUBLE, MASTER, mtype, MPI_COMM_WORLD);
+      MPI_Send(&R[i][0], D, MPI_DOUBLE, MASTER, mtype, MPI_COMM_WORLD);
     }
   }
 
