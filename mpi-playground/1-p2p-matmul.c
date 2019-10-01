@@ -190,8 +190,10 @@ int main(int argc, char** argv) {
     for (i = 0; i < rowB; i++) {
       free(B[i]);
     }
-    free(A); free(B); free(C);
+    free(A); free(B); free(R);
   }  
+
+
   if (taskid > MASTER) {
     // Receiving data from master
     mtype = FROM_MASTER;
