@@ -151,7 +151,6 @@ int main(int argc, char** argv) {
       position = i * colA + j;
       R[position] = 0.0;
       for (k = 0; k < colA; k++) {
-        if (taskid == 0) printf("[%d] = [%d]*[%d] \n", position, i*colA+k, k*colB+j); 
         R[position] += A[i * colA + k] * B[k * colB + j];
       }
     }
