@@ -30,9 +30,9 @@ int main(int argc, char** argv) {
 
   double *sendA, *A, *B, *recvR, *R;                // Matrice
   double start, finish;           // Measure time
-  char *filenameA = "matA.txt",
-       *filenameB = "matB.txt",
-       *filenameR = "result.txt";
+  char *filenameA = "100x100.matA",
+       *filenameB = "100x100.matB",
+       *filenameR = "collective.matR";
   int rowA, rowB, colA, colB;
   int DEBUG = 0;
 
@@ -69,6 +69,7 @@ int main(int argc, char** argv) {
     else {
         fscanf(matA, "%d %d", &rowA, &colA);
         fscanf(matB, "%d %d", &rowB, &colB);
+        printf("matA read from %s. matB read from %s.\n",filenameA, filenameB);
         printf("matA: %dx%d. matB: %dx%d.", rowA, colA, rowB, colB);
     }
 
@@ -170,14 +171,15 @@ int main(int argc, char** argv) {
   
   if (taskid == ROOT) {
     finish = MPI_Wtime();
-    printf("Job done in %.4f.\n", finish - start);
+    printf("Job done in %.7f.\n", finish - start);
 
     // Writing result
+    printf("Writing result to.. %s\n", filenameR);
     FILE* result = fopen(filenameR, "w+");
     fprintf(result, "%d %d\n", rowA, colB);
     for (i = 0; i < rowA; i++) {
         for (j = 0; j < colB; j++) {
-            fprintf(result, "%.3lf ", recvR[i*colB + j]);
+            fprintf(result, "%.2lf ", recvR[i*colB + j]);
         }
         fprintf(result, "\n");
     }

@@ -35,11 +35,11 @@ int main(int argc, char** argv) {
 
   double **A, **B, **R;                // Matrice
   MPI_Status status;
-  char *filenameA = "matA.txt",
-       *filenameB = "matB.txt",
-       *filenameR = "result.txt";
+  char *filenameA = "100x100.matA",
+       *filenameB = "100x100.matB",
+       *filenameR = "p2p.matR";
   int rowA, rowB, colA, colB;
-
+  int DEBUG = 0;
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
   MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
@@ -51,9 +51,8 @@ int main(int argc, char** argv) {
     * Master task
   */
   if (taskid == MASTER) {
-      if (argc > 1) {
-                printf("There must be 1 arguments!\n");
-                            
+      if (argc == 2) {
+        DEBUG = atoi(argv[1]);  
       }
 
       if (numtasks < 2) {
@@ -63,7 +62,6 @@ int main(int argc, char** argv) {
                             
       }
     
-      const int DEBUG = 1;
     
     printf("MPI has started with %d tasks.\n", numtasks);
     
@@ -79,9 +77,10 @@ int main(int argc, char** argv) {
     else {
         fscanf(matA, "%d %d", &rowA, &colA);
         fscanf(matB, "%d %d", &rowB, &colB);
+        printf("matA read from %s. matB read from %s.\n",filenameA, filenameB);
         printf("matA: %dx%d. matB: %dx%d.", rowA, colA, rowB, colB);
     }
-
+    
     if (colA != rowB) {
         printf("AxB is unmultiplicable.\n");
         MPI_Abort(MPI_COMM_WORLD, rc);
@@ -149,7 +148,7 @@ int main(int argc, char** argv) {
         offset += rows;
 
         // Debug
-        printf("Successfully sending to worker %d.\n", dest);
+        if (DEBUG) printf("Successfully sending to worker %d.\n", dest);
     }
 
     // Waiting the results from those workers.
@@ -164,19 +163,20 @@ int main(int argc, char** argv) {
         }
         
         // Debug
-        printf("Successfully receiving from workers %d.\n", source);
+        if (DEBUG) printf("Successfully receiving from workers %d.\n", source);
     
     }
     
     double finish = MPI_Wtime();
-    printf("Done in %.2f seconds.\n", finish - start);
+    printf("Done in %.7f seconds.\n", finish - start);
     
     // Writing result
+    printf("Writing result to.. %s\n", filenameR);
     FILE* result = fopen(filenameR, "w+");
     fprintf(result, "%d %d\n", rowA, colB);
     for (i = 0; i < rowA; i++) {
         for (j = 0; j < colB; j++) {
-            fprintf(result, "%lf ", R[i][j]);
+            fprintf(result, "%.2lf ", R[i][j]);
         }
         fprintf(result, "\n");
     }
@@ -216,7 +216,7 @@ int main(int argc, char** argv) {
       MPI_Recv(&B[i][0], colB, MPI_DOUBLE, MASTER, mtype, MPI_COMM_WORLD, &status);
     }
 
-    printf("Worker %d successfully received data!\n", taskid);
+    if(DEBUG) printf("Worker %d successfully received data!\n", taskid);
 
     // Do the job!!
     for (i = 0; i < rows; i++) {
